@@ -1,34 +1,29 @@
 <template>
-  <div class="relative w-full h-full">
+  <div class="min-h-screen flex flex-col relative w-full h-full">
     <div class="absolute inset-0 z-0 pointer-events-none overflow-hidden" ref="background">
       <transition-group name="fade" tag="div">
-        <div
-          v-for="(step, index) in pawTrail"
-          :key="`primary-${step.id}`"
-          class="absolute bg-cover bg-no-repeat w-8 h-8 animate-fadeOut"
-          :style="step.style"
-        ></div>
+        <div v-for="(step, index) in pawTrail" :key="`primary-${step.id}`"
+          class="absolute bg-cover bg-no-repeat w-8 h-8 animate-fadeOut" :style="step.style" />
       </transition-group>
       <transition-group name="fade" tag="div">
-        <div
-          v-for="(step, index) in secondaryTrail"
-          :key="`secondary-${step.id}`"
-          class="absolute bg-cover bg-no-repeat w-8 h-8 opacity-70 animate-fadeOut"
-          :style="step.style"
-        ></div>
+        <div v-for="(step, index) in secondaryTrail" :key="`secondary-${step.id}`"
+          class="absolute bg-cover bg-no-repeat w-8 h-8 opacity-70 animate-fadeOut" :style="step.style" />
       </transition-group>
     </div>
 
-    <div class="relative z-10">
+    <div class="flex-1 relative z-10">
       <Navbar />
       <slot />
-      <Footer />
     </div>
+
+    <Footer />
   </div>
 </template>
 
+
 <script>
-import pawImage from '~/assets/images/paw.png';
+import { nextTick } from "vue";
+import pawImage from "~/assets/images/paw.png";
 
 export default {
   data() {
@@ -52,19 +47,32 @@ export default {
     window.addEventListener('resize', this.updateBounds);
     window.addEventListener('scroll', this.updateBounds);
   },
+  watch: {
+    $route() {
+      nextTick(() => {
+        setTimeout(() => {
+          this.updateBounds();
+          this.resetPawPosition();
+        }, 50);
+      });
+    },
+  },
   beforeDestroy() {
     window.removeEventListener('resize', this.updateBounds);
     window.removeEventListener('scroll', this.updateBounds);
   },
   methods: {
     updateBounds() {
-      const bodyRect = document.body.getBoundingClientRect();
       this.bounds = {
-        top: bodyRect.top,
-        left: bodyRect.left,
-        width: bodyRect.width,
-        height: bodyRect.height,
+        top: 0,
+        left: 0,
+        width: document.documentElement.scrollWidth,
+        height: Math.max(document.documentElement.scrollHeight, window.innerHeight),
       };
+    },
+    resetPawPosition() {
+      this.position.x = Math.min(this.position.x, this.bounds.width - this.stepSize);
+      this.position.y = Math.min(this.position.y, this.bounds.height - this.stepSize);
     },
     startWalking() {
       setInterval(() => {
@@ -76,7 +84,7 @@ export default {
         this.movePaw();
         this.maybeTurn();
         this.isPrimaryTurn = !this.isPrimaryTurn;
-      }, 300);
+      }, 250);
     },
     leavePrimaryTrail() {
       const id = Date.now();
@@ -124,10 +132,10 @@ export default {
       const nextX = this.position.x + this.direction.x * this.stepSize;
       const nextY = this.position.y + this.direction.y * this.stepSize;
 
-      if (nextX < this.bounds.left || nextX > this.bounds.left + this.bounds.width) {
+      if (nextX < this.bounds.left || nextX > this.bounds.width) {
         this.reverseDirection('x');
       }
-      if (nextY < this.bounds.top || nextY > this.bounds.top + this.bounds.height) {
+      if (nextY < this.bounds.top || nextY > this.bounds.height) {
         this.reverseDirection('y');
       }
 
